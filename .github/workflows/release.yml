@@ -1,0 +1,74 @@
+# .github/workflows/release.yml
+
+# 工作流的名称
+name: 创建发行版 (Create Release)
+
+# 触发条件
+on:
+  # 当一个以 'v' 开头的标签被推送到仓库时触发 (例如 v1.0, v1.2.3)
+  push:
+    tags:
+      - 'v*.*.*'
+  # 同样允许手动触发
+  workflow_dispatch:
+
+jobs:
+  # 任务1：构建可执行文件（和之前类似，但现在是为发布而构建）
+  build-for-release:
+    name: 构建Windows发布版
+    runs-on: windows-latest
+
+    steps:
+      - name: checkout 代码
+        uses: actions/checkout@v4
+
+      - name: 设置Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: 安装依赖
+        run: pip install -r requirements.txt
+
+      - name: 安装 PyInstaller
+        run: pip install pyinstaller
+
+      - name: 使用 PyInstaller 打包
+        run: pyinstaller --name "AI-Refutation-Agent" --onefile --windowed --add-data "ui/web;ui/web" main.py
+
+      # 关键步骤：将构建好的exe作为产物上传，以便下一个任务使用
+      - name: 上传构建产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-build # 给这个产物起个名字
+          path: dist/AI-Refutation-Agent.exe # 上传exe文件
+
+  # 任务2：创建GitHub Release并上传文件
+  create-release:
+    name: 创建 GitHub Release
+    # 依赖于上一个任务的成功
+    needs: build-for-release
+    runs-on: ubuntu-latest # 创建Release只是API调用，用ubuntu即可
+
+    steps:
+      # 关键步骤：下载上一个任务上传的构建产物
+      - name: 下载构建产物
+        uses: actions/download-artifact@v4
+        with:
+          name: windows-build # 下载同名的产物
+
+      # 关键步骤：使用社区最流行的action来创建release
+      - name: 创建 Release 并上传 .exe
+        uses: softprops/action-gh-release@v2
+        with:
+          # files: 指定要上传到Release附件的文件
+          files: AI-Refutation-Agent.exe
+          # body: Release的描述内容，可以写更新日志
+          body: |
+            AI杠精自动构建版本。
+            * 自动打包生成
+            * 从Actions构建
+          # name: Release的标题，${{ github.ref_name }} 会自动获取触发它的标签名 (如 v1.0)
+          name: "AI杠精 ${{ github.ref_name }}"
+          # tag_name: 告诉action要用哪个tag创建release，这里同样是自动获取
+          tag_name: ${{ github.ref }}
