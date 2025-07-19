@@ -25,6 +25,12 @@ jobs:
         with:
           python-version: '3.11'
 
+      # --- 核心修正：在这里添加新步骤 ---
+      - name: 安装PortAudio系统依赖
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y portaudio19-dev
+
       - name: 安装依赖
         run: pip install -r requirements.txt
 
