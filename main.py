@@ -27,7 +27,6 @@ def init_dashscope_api_key():
 
 def signal_handler(sig, frame):
     """处理 Ctrl+C 中断信号"""
-    global agent, window
     logger.info("收到退出信号 (Ctrl+C)，正在停止...")
     if agent:
         agent.stop()
