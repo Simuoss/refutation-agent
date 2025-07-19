@@ -1,0 +1,7 @@
+# requirements.txt
+
+dashscope
+openai
+pyaudio
+python-dotenv
+numpy
