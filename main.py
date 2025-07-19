@@ -4,30 +4,35 @@ import sys
 import signal
 import dashscope
 from dotenv import load_dotenv
+import logging
+from utils.logger_setup import setup_global_logger
 from agent.main_agent import MainAgent
 
+# --- 核心改动：在所有逻辑开始前，先配置好日志 ---
+setup_global_logger()
+
 agent = None
+logger = logging.getLogger(__name__)
 
 def init_dashscope_api_key():
+    from dotenv import load_dotenv
     load_dotenv()
     api_key = os.getenv("DASHSCOPE_API_KEY")
     if not api_key:
-        print("错误：未在 .env 文件或环境变量中找到 DASHSCOPE_API_KEY！", file=sys.stderr)
+        logger.error("未在 .env 文件或环境变量中找到 DASHSCOPE_API_KEY！")
         sys.exit(1)
-    print("DashScope API Key 已成功加载。")
+    logger.info("DashScope API Key 已成功加载。")
     return api_key
 
 def signal_handler(sig, frame):
     """处理 Ctrl+C 中断信号"""
     global agent
-    print("\n[程序] 收到退出信号，正在停止...")
+    logger.info("收到退出信号 (Ctrl+C)，正在停止...")
     if agent:
         agent.stop() # 调用新的停止方法
 
-# --- 文件内容基本不变，除了 signal_handler 的调用目标 ---
-
 if __name__ == '__main__':
-    print("[程序] AI自动反驳Agent启动中...")
+    logger.info("="*10 + " AI自动反驳Agent启动 " + "="*10)
     
     signal.signal(signal.SIGINT, signal_handler)
 
@@ -39,10 +44,9 @@ if __name__ == '__main__':
         agent.run() # 启动守护循环
 
     except KeyboardInterrupt:
-        # 主动捕获KeyboardInterrupt，防止在sleep时按Ctrl+C导致栈追踪信息打印
-        print("\n[程序] 已通过Ctrl+C确认退出。")
+        logger.info("程序已通过 Ctrl+C 确认退出。")
     except Exception as e:
-        print(f"程序启动时发生致命错误: {e}")
+        logger.critical(f"程序启动时发生致命错误: {e}", exc_info=True)
     
     finally:
-        print("[程序] 已退出。")
+        logger.info("="*10 + " 程序已退出 " + "="*10)

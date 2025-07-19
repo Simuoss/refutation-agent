@@ -2,14 +2,16 @@
 import pyaudio
 import os
 import dashscope
+import logging
 from dashscope.audio.asr import Recognition, RecognitionCallback, RecognitionResult
 import config
 import threading
 import time
-import numpy as np # <--- 引入 numpy
+import numpy as np
+
+logger = logging.getLogger(__name__)
 
 class ASRHandler:
-    # ... (__init__ 和 ASRCallback 内部类保持不变) ...
     def __init__(self, on_sentence_end_callback):
         self.on_sentence_end_callback = on_sentence_end_callback
         self.mic = None
@@ -22,7 +24,7 @@ class ASRHandler:
             def __init__(self, outer_instance):
                 self.outer = outer_instance
             def on_open(self) -> None:
-                print("\n[🎤 语音识别服务已连接，请开始说话...]")
+                logger.info("🎤 语音识别服务已连接，请开始说话...")
                 try:
                     self.outer.mic = pyaudio.PyAudio()
                     self.outer.stream = self.outer.mic.open(
@@ -34,10 +36,10 @@ class ASRHandler:
                     self.outer._is_running = True
                     self.outer._connection_lost.clear()
                 except Exception as e:
-                    print(f"[错误] 打开麦克风失败: {e}")
+                    logger.error(f"打开麦克风失败: {e}")
                     self.outer._connection_lost.set()
             def on_close(self) -> None:
-                print("[🎤 语音识别服务已关闭。]")
+                logger.info("🎤 语音识别服务已关闭。")
                 self.outer._is_running = False
                 if self.outer.stream:
                     if self.outer.stream.is_active():
@@ -47,14 +49,14 @@ class ASRHandler:
                     self.outer.mic.terminate()
                 self.outer.stream = self.outer.mic = None
             def on_error(self, message) -> None:
-                print(f"[错误] 语音识别出错: {message.message}")
+                logger.error(f"语音识别出错: {message.message}")
                 self.outer._connection_lost.set()
                 self.on_close()
             def on_event(self, result: RecognitionResult) -> None:
                 sentence = result.get_sentence()
                 if 'text' in sentence and RecognitionResult.is_sentence_end(sentence):
                     user_text = sentence['text']
-                    print(f"识别到你说: {user_text}")
+                    logger.info(f"识别到你说: {user_text}")
                     if self.outer.on_sentence_end_callback:
                         self.outer.on_sentence_end_callback(user_text)
         
@@ -68,7 +70,7 @@ class ASRHandler:
 
     def start_session(self):
         self.recognition.start()
-        print("[提示] ASR会话已启动。")
+        logger.info("ASR会话已启动。")
 
     def run_audio_loop(self):
         """运行音频发送循环，直到连接断开，并增加了VAD逻辑。"""
@@ -90,7 +92,7 @@ class ASRHandler:
                         audio_data_fp = audio_data.astype(np.float64)
                         # 计算音量（RMS能量）
                         energy = np.sqrt(np.mean(audio_data_fp**2))
-                        #print(f"[VAD] 当前音频能量: {energy:.2f}")
+                        # logger.debug(f"当前音频能量: {energy:.2f}")  # 注释掉频繁的调试信息
                     else:
                         # 如果音频块为空，则能量为0
                         energy = 0
@@ -104,14 +106,14 @@ class ASRHandler:
                         # 处于静默状态
                         self.recognition.send_audio_frame(data) # 即使静默也发送数据，让服务端处理
                         if time.time() - last_speech_time > config.SILENCE_TIMEOUT_SECONDS:
-                            print(f"\n[VAD] 检测到超过 {config.SILENCE_TIMEOUT_SECONDS} 秒的持续静默，将主动重置连接以保持活性...")
+                            logger.info(f"检测到超过 {config.SILENCE_TIMEOUT_SECONDS} 秒的持续静默，将主动重置连接以保持活性...")
                             self.stop() # 主动停止
                             break # 退出循环，让守护进程接管
 
                 else:
                     break 
             except (IOError, OSError) as e:
-                print(f"音频读取错误: {e}")
+                logger.error(f"音频读取错误: {e}")
                 self._connection_lost.set()
                 break
     

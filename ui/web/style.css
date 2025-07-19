@@ -1,0 +1,64 @@
+/* ui/web/style.css */
+/* 基本设置，实现窗口透明 */
+html, body {
+    background-color: transparent;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif;
+    margin: 0;
+    padding: 0;
+    overflow: hidden; /* 隐藏滚动条 */
+}
+
+/* 聊天窗口主容器 */
+.chat-container {
+    box-sizing: border-box;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(20, 20, 30, 0.75); /* 半透明深色背景 */
+    backdrop-filter: blur(10px); /* 毛玻璃效果 */
+    border-radius: 12px;
+    padding: 15px;
+    overflow-y: auto; /* 内容超出时可滚动 */
+    display: flex;
+    flex-direction: column; /* 消息垂直排列 */
+}
+
+/* 滚动条美化 (可选) */
+.chat-container::-webkit-scrollbar {
+    width: 4px;
+}
+.chat-container::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 2px;
+}
+
+/* 消息气泡基类 */
+.bubble {
+    padding: 10px 15px;
+    border-radius: 18px;
+    margin-bottom: 10px;
+    max-width: 85%;
+    color: white;
+    word-wrap: break-word;
+}
+
+/* 状态/提示消息 (如：偷听中...) */
+.status {
+    background-color: rgba(80, 80, 90, 0.8);
+    align-self: center; /* 居中 */
+    font-size: 0.8em;
+    font-style: italic;
+}
+
+/* 用户消息气泡 (深色，靠右) */
+.user {
+    background-color: #005c4b;
+    align-self: flex-end; /* 靠右 */
+    border-bottom-right-radius: 4px; /* 增加一点棱角感 */
+}
+
+/* AI消息气泡 (稍浅色，靠左) */
+.ai {
+    background-color: #2a3942;
+    align-self: flex-start; /* 靠左 */
+    border-bottom-left-radius: 4px;
+}

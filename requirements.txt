@@ -5,3 +5,4 @@ openai
 pyaudio
 python-dotenv
 numpy
+pywebview
