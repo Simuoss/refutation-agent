@@ -1,0 +1,81 @@
+# 工作流的显示名称，清晰地表明其用途
+name: AI杠精 持续集成与构建
+
+on:
+  # 当有代码推送到 main 分支时触发
+  push:
+    branches: [ "main" ]
+  # 当有针对 main 分支的 Pull Request 时触发
+  pull_request:
+    branches: [ "main" ]
+  # 允许手动在GitHub Actions页面点击运行
+  workflow_dispatch:
+
+jobs:
+  # 任务1：代码风格检查 (在Linux上运行，速度快)
+  lint:
+    name: 1. 检查代码风格 (Flake8)
+    runs-on: ubuntu-latest
+    steps:
+      - name:  checkout 代码
+        uses: actions/checkout@v4
+
+      - name: 设置Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      # --- 核心修正：在这里添加新步骤 ---
+      - name: 安装PortAudio系统依赖
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y portaudio19-dev
+
+      - name: 安装依赖
+        run: pip install -r requirements.txt
+
+      - name: 安装并运行 Flake8
+        run: |
+          pip install flake8
+          # 运行flake8，只检查严重错误，如果出错则构建失败
+          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+
+  # 任务2：打包Windows可执行文件 (在Windows上运行)
+  build-windows-exe:
+    name: 2. 打包Windows可执行文件
+    # 设置依赖：必须在 lint 任务成功后才开始
+    needs: lint
+    runs-on: windows-latest
+
+    steps:
+      - name: checkout 代码
+        uses: actions/checkout@v4
+
+      - name: 设置Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: 安装依赖
+        run: pip install -r requirements.txt
+
+      - name: 安装打包工具 PyInstaller
+        run: pip install pyinstaller
+
+      - name: 使用 PyInstaller 打包
+        run: |
+          # --name: 定义输出的exe文件名
+          # --onefile: 打包成单个exe文件
+          # --windowed: 运行时不显示黑色的命令行窗口（GUI程序必备）
+          # --add-data: 关键！将我们的UI文件(html/css/js)打包进去
+          #     格式是 "源路径;目标路径"，用分号分隔。
+          #     "ui/web;ui/web" 表示将项目中的ui/web文件夹，放到打包后的程序的ui/web文件夹里
+          pyinstaller --name "AI-Refutation-Agent" --onefile --windowed --add-data "ui/web;ui/web" main.py
+
+      - name: 上传打包好的 .exe 文件作为产物
+        uses: actions/upload-artifact@v4
+        with:
+          # 产物的名称
+          name: AI-Refutation-Agent-Windows
+          # 要上传的文件路径
+          path: dist/AI-Refutation-Agent.exe
