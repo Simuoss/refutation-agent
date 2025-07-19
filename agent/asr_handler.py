@@ -98,17 +98,29 @@ class ASRHandler:
                         energy = 0
                     
                     # --- VAD 判断逻辑 ---
-                    if energy > config.VAD_ENERGY_THRESHOLD:
-                        # 检测到语音，更新说话时间，并发送数据
+                    is_speech = energy > config.VAD_ENERGY_THRESHOLD
+                    if is_speech:
                         last_speech_time = time.time()
+                    
+                    # 在发送前检查会话是否仍然有效
+                    if not self._is_running:
+                        break
+
+                    try:
                         self.recognition.send_audio_frame(data)
-                    else:
-                        # 处于静默状态
-                        self.recognition.send_audio_frame(data) # 即使静默也发送数据，让服务端处理
-                        if time.time() - last_speech_time > config.SILENCE_TIMEOUT_SECONDS:
-                            logger.info(f"检测到超过 {config.SILENCE_TIMEOUT_SECONDS} 秒的持续静默，将主动重置连接以保持活性...")
-                            self.stop() # 主动停止
-                            break # 退出循环，让守护进程接管
+                    except dashscope.common.error.InvalidParameter as e:
+                        # 捕获会话已停止的异常，并优雅地退出
+                        if "Speech recognition has stopped" in str(e):
+                            logger.warning("ASR会话已停止，停止发送音频数据。")
+                            break
+                        else:
+                            raise # 重新抛出其他类型的InvalidParameter异常
+                    
+                    # 静默超时逻辑
+                    if not is_speech and time.time() - last_speech_time > config.SILENCE_TIMEOUT_SECONDS:
+                        logger.info(f"检测到超过 {config.SILENCE_TIMEOUT_SECONDS} 秒的持续静默，将主动重置连接以保持活性...")
+                        self.stop() # 主动停止
+                        break # 退出循环，让守护进程接管
 
                 else:
                     break 

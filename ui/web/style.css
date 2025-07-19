@@ -1,64 +1,199 @@
 /* ui/web/style.css */
-/* 基本设置，实现窗口透明 */
+/* 基本设置 */
+:root {
+    --base-font-size: 13px;
+}
+
 html, body {
-    background-color: transparent;
+    /* 设置一个坚实的背景色，因为窗口不再透明 */
+    background-color: #14141E; /* rgb(20, 20, 30) */
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif;
     margin: 0;
     padding: 0;
-    overflow: hidden; /* 隐藏滚动条 */
+    overflow: hidden;
+    height: 100vh;
+    width: 100vw;
 }
 
-/* 聊天窗口主容器 */
+/* 竖向小窗口主容器 */
 .chat-container {
     box-sizing: border-box;
-    width: 100vw;
-    height: 100vh;
-    background-color: rgba(20, 20, 30, 0.75); /* 半透明深色背景 */
-    backdrop-filter: blur(10px); /* 毛玻璃效果 */
-    border-radius: 12px;
-    padding: 15px;
-    overflow-y: auto; /* 内容超出时可滚动 */
+    width: 100%;
+    height: 100%;
+    background-color: rgba(20, 20, 30, 0.85);
+    backdrop-filter: blur(15px);
+    border-radius: 5px;
+    padding: 12px 8px;
+    overflow-y: auto;
     display: flex;
-    flex-direction: column; /* 消息垂直排列 */
+    flex-direction: column;
+    gap: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
 }
 
-/* 滚动条美化 (可选) */
+/* 滚动条美化 */
 .chat-container::-webkit-scrollbar {
-    width: 4px;
+    width: 3px;
 }
 .chat-container::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.3);
+    background: rgba(255, 255, 255, 0.2);
     border-radius: 2px;
+}
+.chat-container::-webkit-scrollbar-track {
+    background: transparent;
 }
 
 /* 消息气泡基类 */
 .bubble {
-    padding: 10px 15px;
-    border-radius: 18px;
-    margin-bottom: 10px;
-    max-width: 85%;
+    padding: 8px 12px;
+    border-radius: 12px;
+    margin-bottom: 6px;
     color: white;
     word-wrap: break-word;
+    font-size: var(--base-font-size);
+    line-height: 1.4;
+    animation: slideIn 0.3s ease-out;
+    position: relative;
 }
 
-/* 状态/提示消息 (如：偷听中...) */
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* 状态消息 - AI杠精偷听中... */
 .status {
-    background-color: rgba(80, 80, 90, 0.8);
-    align-self: center; /* 居中 */
-    font-size: 0.8em;
+    background: linear-gradient(135deg, rgba(100, 100, 120, 0.8), rgba(80, 80, 100, 0.8));
+    align-self: center;
+    font-size: calc(var(--base-font-size) - 2px); /* 使用CSS变量，并保持较小的尺寸 */
     font-style: italic;
+    text-align: center;
+    border-radius: 20px;
+    padding: 6px 12px;
+    margin: 4px 0;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    cursor: pointer; /* 提示用户“偷听中”气泡可点击 */
+    transition: background-color 0.2s;
 }
 
-/* 用户消息气泡 (深色，靠右) */
+.status:hover {
+    background: linear-gradient(135deg, rgba(120, 120, 140, 0.9), rgba(100, 100, 120, 0.9));
+}
+
+.status.listening {
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 0.7; }
+    50% { opacity: 1; }
+}
+
+/* 用户消息气泡 - AI杠精听到了：xxx */
 .user {
-    background-color: #005c4b;
-    align-self: flex-end; /* 靠右 */
-    border-bottom-right-radius: 4px; /* 增加一点棱角感 */
+    background: linear-gradient(135deg, #00a884, #008c6f);
+    align-self: flex-start;
+    border-bottom-left-radius: 4px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 2px 8px rgba(0, 168, 132, 0.2);
 }
 
-/* AI消息气泡 (稍浅色，靠左) */
+.user::before {
+    content: "🎧 AI杠精听到了：";
+    display: block;
+    font-size: 10px;
+    opacity: 0.8;
+    margin-bottom: 4px;
+    font-weight: bold;
+}
+
+/* AI消息气泡 - AI杠精表示：xxx */
 .ai {
-    background-color: #2a3942;
-    align-self: flex-start; /* 靠左 */
+    background: linear-gradient(135deg, #4a5568, #2d3748);
+    align-self: flex-start;
     border-bottom-left-radius: 4px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 2px 8px rgba(74, 85, 104, 0.3);
+}
+
+.ai::before {
+    content: "🤖 AI杠精表示：";
+    display: block;
+    font-size: 10px;
+    opacity: 0.8;
+    margin-bottom: 4px;
+    font-weight: bold;
+    color: #ffd700;
+}
+
+/* 流式输出效果 */
+.ai.streaming {
+    position: relative;
+}
+
+.ai.streaming::after {
+    content: "▋";
+    animation: blink 1s infinite;
+    color: #ffd700;
+}
+
+@keyframes blink {
+    0%, 50% { opacity: 1; }
+    51%, 100% { opacity: 0; }
+}
+
+/* 响应式调整 - 已移除，以避免与用户控制的字体大小冲突 */
+
+/* 控制按钮和拖动句柄 */
+.controls-container {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    pointer-events: none; /* 容器本身不捕获事件 */
+}
+
+.font-controls {
+    display: flex;
+    gap: 5px;
+    padding-left: 5px;
+    pointer-events: auto; /* 按钮可以捕获事件 */
+}
+
+.font-controls button {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    width: 18px;
+    height: 18px;
+    font-size: 12px;
+    line-height: 16px;
+    text-align: center;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.font-controls button:hover {
+    background-color: rgba(255, 255, 255, 0.3);
+}
+
+.resize-handle {
+    width: 16px;
+    height: 16px;
+    background-image: linear-gradient(135deg, transparent 45%, rgba(255, 255, 255, 0.3) 45%, rgba(255, 255, 255, 0.3) 55%, transparent 55%, transparent 100%);
+    cursor: nwse-resize;
+    pointer-events: auto; /* 拖动句柄可以捕获事件 */
+    align-self: flex-end;
 }

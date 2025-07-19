@@ -2,20 +2,26 @@
 import logging
 from openai import OpenAI, APIConnectionError, RateLimitError
 import config
+from ui.webview_window import RefutationWebViewWindow, StreamingAIResponse
 
 logger = logging.getLogger(__name__)
 
 class LLMHandler:
-    def __init__(self, client: OpenAI):
+    def __init__(self, client: OpenAI, window: RefutationWebViewWindow):
         self.client = client
+        self.window = window
         self.system_prompt = config.DEFAULT_SYSTEM_PROMPT
 
     def get_response(self, text_to_refute: str):
-        if not self.client:
-            logger.error("LLM客户端未初始化！")
+        """获取AI回复并通过WebView显示"""
+        if not self.client or not self.window:
+            logger.error("LLM客户端或WebView窗口未初始化！")
             return
 
         logger.info("[🤖 AI杠精 正在思考...]")
+        
+        # 在UI上显示用户听到的内容
+        self.window.add_user_message(text_to_refute)
         
         try:
             completion = self.client.chat.completions.create(
@@ -28,17 +34,21 @@ class LLMHandler:
             )
 
             logger.info("[🤖 AI杠精 生成中...]")
+            
             response_text = ""
-            for chunk in completion:
-                content = chunk.choices[0].delta.content
-                if content:
-                    response_text += content
-                    # 对于流式输出，我们仍然使用print来保持实时显示效果
-                    print(content, end="", flush=True)
-            print()  # 换行
+            with StreamingAIResponse(self.window) as stream:
+                for chunk in completion:
+                    content = chunk.choices[0].delta.content
+                    if content:
+                        response_text += content
+                        stream.append(content)
+                        # 仍然在控制台打印，方便调试
+                        print(content, end="", flush=True)
+            
+            print() # 换行
             logger.info(f"AI回复完成: {response_text}")
+            return response_text
 
-        # --- 核心改动：捕获更具体的异常 ---
         except APIConnectionError as e:
             logger.error(f"LLM网络连接失败: {e.__cause__}")
         except RateLimitError as e:
