@@ -12,6 +12,9 @@ on:
   # 同样允许手动触发
   workflow_dispatch:
 
+permissions:
+  contents: write # 给予工作流对仓库内容的写权限，这是创建Release和上传附件所必需的
+
 jobs:
   # 任务1：构建可执行文件（和之前类似，但现在是为发布而构建）
   build-for-release:

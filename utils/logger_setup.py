@@ -1,8 +1,13 @@
 # utils/logger_setup.py
+import io
 import os
 import logging
 from logging.handlers import RotatingFileHandler
 from datetime import datetime
+import sys
+
+sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
 
 def setup_global_logger():
     """
